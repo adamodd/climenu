@@ -2,63 +2,46 @@
 # xcmd — run several commands at once; Ctrl-C stops them all.
 #
 #   xcmd 'npm run dev' 'python3 -m http.server' 'tail -f app.log'
+#   xcmd -t ...    label each output line with the command it came from
 #
 # Each argument is one command; quote it if it has spaces or && in it.
-# xcmd returns when you press Ctrl-C or when every command has finished,
-# and not before all of them (and anything they started) have stopped.
 #
-# The commands get no keyboard input (stdin is /dev/null). Daemons don't
-# need it, and it stops them fighting over the terminal or leaving it in
-# a strange mode after they exit.
+# A thin wrapper around GNU parallel, which does the real work: it runs
+# the commands side by side, gives them no keyboard input (so they can't
+# fight over the terminal), and on Ctrl-C stops each one along with
+# everything it started, then waits until they've all exited.
+
+usage() {
+  echo "usage: xcmd [-t] 'command 1' 'command 2' ..."
+  echo "  -t   label each output line with the command it came from"
+}
+
+tag=
+while getopts th opt; do
+  case $opt in
+    t) tag=--tag ;;
+    h) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
 
 if [ $# -eq 0 ]; then
-  echo "usage: xcmd 'command 1' 'command 2' ..." >&2
+  usage >&2
   exit 2
 fi
 
-tty_mode=$(stty -g 2>/dev/null)  # terminal settings, to put back at the end
+# The moreutils package has a different program also called "parallel".
+if ! parallel --version 2>/dev/null | grep -q '^GNU parallel'; then
+  echo "xcmd: needs GNU parallel (macOS: brew install parallel," >&2
+  echo "      Debian/Ubuntu: apt install parallel)" >&2
+  exit 127
+fi
 
-# Job control: each command runs in its own process group, so stopping a
-# group also stops whatever that command started (npm -> node, etc.).
-# Without a terminal (from cron, say) job control isn't available: then
-# only each command's top-level process is stopped, and anything it
-# started (the node behind `cd app && npm run dev`) may keep running.
-set -m 2>/dev/null
-
-pids=
-for cmd in "$@"; do
-  sh -c "$cmd" </dev/null &
-  pids="$pids $!"
-done
-
-any_running() {
-  for pid in $pids; do
-    kill -0 -"$pid" 2>/dev/null || kill -0 "$pid" 2>/dev/null && return 0
-  done
-  return 1
-}
-
-stop_all() {
-  trap '' INT TERM HUP  # extra Ctrl-C presses while stopping: ignore
-  exec 2>/dev/null      # hide the shell's own "Terminated" notices
-  for pid in $pids; do
-    kill -TERM -"$pid" || kill -TERM "$pid"  # ask every group to stop
-  done
-  tries=0
-  while any_running && [ $tries -lt 50 ]; do  # give them up to 5 seconds
-    sleep 0.1
-    tries=$((tries + 1))
-  done
-  for pid in $pids; do
-    kill -KILL -"$pid" || kill -KILL "$pid"  # then force anything still there
-  done
-  wait
-  if [ -n "$tty_mode" ]; then stty "$tty_mode"; fi
-}
-
-trap 'echo; stop_all; exit 130' INT
-trap 'stop_all; exit 143' TERM HUP
-
-wait      # until every command finishes on its own (or Ctrl-C)
-stop_all  # clean up anything they left running in the background
-exit 0
+# --will-cite      skip GNU parallel's "please cite" notice
+# --termseq ...    on Ctrl-C: ask each command to stop (TERM), allow up to
+#                  5 s for a clean shutdown, then force it (KILL). The
+#                  default allows only about 0.4 s.
+# --line-buffer    print output as it arrives, whole lines at a time
+# -j0              run every command at once, not a few at a time
+exec parallel --will-cite --termseq TERM,5000,KILL,25 --line-buffer $tag -j0 ::: "$@"
