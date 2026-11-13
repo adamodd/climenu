@@ -11,6 +11,7 @@ Guidance for anyone, human or AI, changing this project. User-facing docs are in
 | `para` | Runs several commands at once; Ctrl-C stops all. A thin wrapper around GNU parallel. |
 | `Makefile` | `make install` / `make uninstall` into `~/scripts` (or `DEST=`). |
 | `readme.md` | User docs, including the zsh and bash hotkey snippets. |
+| `demo/record.py` | Records `demo/climenu-demo.svg`, the animation at the top of the readme. |
 
 ## Principles
 
@@ -48,6 +49,14 @@ There's no test suite in the repo yet. Changes so far were checked by running re
 - Ctrl-C leaves no processes behind (`para`) and no Python traceback (climenu).
 
 pyte doesn't rewrap lines on resize, and drops lines from the top on shrink in a way real terminals don't, so resize results need care. Nothing has been tested inside iTerm2 or Terminal.app themselves.
+
+## Demo animation
+
+`demo/climenu-demo.svg` is generated, not drawn. `python3 demo/record.py` runs the real climenu and para in a real zsh (in a pseudo-terminal, with a throwaway home folder and a fake project), presses keys from the `SCENE` list, captures each screen with pyte, and writes an animated SVG that GitHub plays inline. It needs `pyte` (`pip install pyte`), zsh, git and GNU parallel.
+
+- **Re-run it** after any change to how the menu looks or behaves, and commit the new SVG.
+- It takes the zsh hotkey snippet from the first ```` ```zsh ```` block in `readme.md`, so keep that block there.
+- To check a recording, render frames in a browser (e.g. Playwright, pausing the page's CSS animations at chosen times).
 
 ## Conventions
 

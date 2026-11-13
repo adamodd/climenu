@@ -504,16 +504,18 @@ def main():
     print(f"$ {f'cd {cd} && ' if cd else ''}{command}", flush=True)
 
     # Ctrl-C while the command runs is meant for the command. Python would
-    # also get it and print a traceback, so give it a do-nothing handler.
-    # (A handler, not SIG_IGN: the command must not inherit "ignore Ctrl-C".)
-    signal.signal(signal.SIGINT, lambda *_: None)
+    # also get it and print a traceback, so give it a handler that only
+    # notes it happened. (A handler, not SIG_IGN: the command must not
+    # inherit "ignore Ctrl-C".)
+    interrupted = []
+    signal.signal(signal.SIGINT, lambda *_: interrupted.append(True))
 
     user_shell = os.environ.get("SHELL", "/bin/bash")
     try:
         # cwd= applies the directory to this command only, like `cd foo` in
         # a subshell; the menu's own working directory is left alone.
-        result = subprocess.run(_shell_invocation(user_shell, command), cwd=cwd)
-        if result.returncode in (-signal.SIGINT, 128 + signal.SIGINT):
+        subprocess.run(_shell_invocation(user_shell, command), cwd=cwd)
+        if interrupted:
             print()  # stopped with Ctrl-C: end the "^C" line so the prompt gets its own
     finally:
         term.restore_shell_mode()

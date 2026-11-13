@@ -5,6 +5,8 @@ Two small command-line tools for macOS and Linux:
 - **climenu**: a menu of your own command shortcuts that pops up under your shell prompt when you press Ctrl-G.
 - **para**: runs several commands side by side, such as dev servers, and stops them all with one Ctrl-C.
 
+![climenu demo: Ctrl-G opens the menu under the prompt, q closes it without a trace, a hotkey runs git status, and a menu item starts two dev servers with para, which Ctrl-C stops](demo/climenu-demo.svg)
+
 ## Requirements
 
 - **macOS or Linux.**
