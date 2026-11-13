@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-profile-menu.py — a minimal terminal menu for your command shortcuts.
+climenu.py — a minimal terminal menu for your command shortcuts.
 
 The menu draws inline, just below your prompt (like fzf's Ctrl-R), instead
 of taking over the whole screen. It redraws in place and never clears the
@@ -13,9 +13,9 @@ erases itself when you're done.
     hotkey      jump to and run that item, if it has one
     q or Esc    quit without running anything
 
-CUSTOMIZE: shortcuts live in items.py (in the same directory as this
-script), not here. Edit that file's ITEMS list — this script's logic
-stays untouched. See items.py for the entry format.
+CUSTOMIZE: shortcuts live in clicommands.py (in the same directory as this
+script), not here. Edit that file's COMMANDS list — this script's logic
+stays untouched. See clicommands.py for the entry format.
 
 On selection the menu erases itself, then runs the command in your normal
 terminal (so interactive commands like `htop`, `ssh`, `vim` etc. work fine).
@@ -38,10 +38,10 @@ import termios
 import tty
 from collections import namedtuple
 
-# items.py must sit next to this script for the import below to find it,
+# clicommands.py must sit next to this script for the import below to find it,
 # regardless of the directory this script is launched from.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from items import ITEMS  # noqa: E402  (must come after the sys.path tweak)
+from clicommands import COMMANDS  # noqa: E402  (must come after the sys.path tweak)
 
 # ─────────────────────────────────────────────────────────────
 # EDIT THIS MAP — colors used by the UI.
@@ -139,7 +139,7 @@ def _truncate(text, max_w):
 def _hotkey_field_width():
     """Width of the [x] hotkey field, fixed across all rows (even empty ones)
     so the label column's right edge lines up on every row."""
-    hotkey_w = max([len(i["hotkey"]) for i in ITEMS if i.get("hotkey")] + [1])
+    hotkey_w = max([len(i["hotkey"]) for i in COMMANDS if i.get("hotkey")] + [1])
     return hotkey_w + 2  # + 2 for the surrounding brackets
 
 
@@ -338,7 +338,7 @@ class Menu:
         self.top = 0  # index of the first item shown
         # Only items with a real hotkey get registered for jump+run
         self.hotkeys = {
-            item["hotkey"].lower(): i for i, item in enumerate(ITEMS) if item.get("hotkey")
+            item["hotkey"].lower(): i for i, item in enumerate(COMMANDS) if item.get("hotkey")
         }
 
     def run(self):
@@ -361,18 +361,18 @@ class Menu:
             kind, value = event
 
             if kind == "up":
-                self.selected = (self.selected - 1) % len(ITEMS)
+                self.selected = (self.selected - 1) % len(COMMANDS)
             elif kind == "down":
-                self.selected = (self.selected + 1) % len(ITEMS)
+                self.selected = (self.selected + 1) % len(COMMANDS)
             elif kind == "enter":
-                return ITEMS[self.selected]
+                return COMMANDS[self.selected]
             elif kind == "quit":
                 return None
             elif kind == "key":
                 if value in ("q", "Q"):
                     return None
                 if value.lower() in self.hotkeys:
-                    return ITEMS[self.hotkeys[value.lower()]]
+                    return COMMANDS[self.hotkeys[value.lower()]]
             elif kind == "press":
                 # Highlight on press, run on release, like a normal button.
                 # Acting on press would leave the release report unread, and
@@ -382,7 +382,7 @@ class Menu:
                     self.selected = pressed
             elif kind == "release":
                 if pressed is not None and self._item_at(value) == pressed:
-                    return ITEMS[pressed]
+                    return COMMANDS[pressed]
                 pressed = None
 
     def close(self, running):
@@ -414,7 +414,7 @@ class Menu:
         # cleared), the menu starts right there. Otherwise the cursor is on
         # the prompt line, and the menu starts below so the prompt stays.
         lead = 0 if col == 1 else 1
-        rows = max(min(len(ITEMS), size.lines - lead), 1)
+        rows = max(min(len(COMMANDS), size.lines - lead), 1)
         below = rows - 1 + lead  # lines the menu needs below the anchor
         self.term.write("\n" * below + _up(below))
         if row is not None:
@@ -437,7 +437,7 @@ class Menu:
         # Scroll the visible window of rows so the selection is in it.
         self.top = min(self.top, self.selected)
         self.top = max(self.top, self.selected - rows + 1)
-        self.top = min(self.top, len(ITEMS) - rows)
+        self.top = min(self.top, len(COMMANDS) - rows)
 
         # Usable columns per row. The right margin is at least 1 even if
         # MARGIN is 0: writing in the last column leaves the terminal
@@ -447,7 +447,7 @@ class Menu:
 
         lines = []
         for idx in range(self.top, self.top + rows):
-            item = ITEMS[idx]
+            item = COMMANDS[idx]
             text = _build_row(
                 item["command"], item.get("label"), item.get("hotkey"),
                 line_w, hotkey_field_w,
@@ -469,13 +469,13 @@ class Menu:
 
 
 def main():
-    if not ITEMS:
-        print("profile-menu: items.py has no ITEMS to show", file=sys.stderr)
+    if not COMMANDS:
+        print("climenu: clicommands.py has no COMMANDS to show", file=sys.stderr)
         sys.exit(1)
     try:
         term = Terminal()
     except (OSError, termios.error) as e:
-        print(f"profile-menu: needs an interactive terminal ({e})", file=sys.stderr)
+        print(f"climenu: needs an interactive terminal ({e})", file=sys.stderr)
         sys.exit(1)
 
     menu = Menu(term)

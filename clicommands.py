@@ -1,7 +1,7 @@
 """
-items.py — your command shortcuts, decoupled from profile-menu.py's logic.
+clicommands.py — your command shortcuts, decoupled from climenu.py's logic.
 
-Edit ITEMS below; profile-menu.py imports it and doesn't need to change.
+Edit COMMANDS below; climenu.py imports it and doesn't need to change.
 
 Each entry is a dict with these keys:
     "command"  (required) shell command to run
@@ -14,7 +14,7 @@ Each entry is a dict with these keys:
 Omit any optional key you don't need.
 """
 
-ITEMS = [
+COMMANDS = [
     {"command": "sudo apt update && sudo apt upgrade -y", "label": "Update system",     "hotkey": "u"},
     {"command": "df -h",                                  "label": "Disk usage",        "hotkey": "d"},
     {"command": "htop || top",                            "label": "Processes (top)",   "hotkey": "p"},

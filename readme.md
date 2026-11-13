@@ -1,6 +1,6 @@
-# profile-menu: shell hotkey install
+# climenu: shell hotkey install
 
-Launch `profile-menu.py` from any shell prompt with **Ctrl-G**. The menu opens right below your prompt; selecting an item runs it immediately, same as running the script directly.
+Launch `climenu.py` from any shell prompt with **Ctrl-G**. The menu opens right below your prompt; selecting an item runs it immediately, same as running the script directly.
 
 **Using the menu:** Up/Down or the mouse wheel to move, Enter or a click to run, an item's hotkey to jump to it and run it, `q` or Esc to close without running anything.
 
@@ -12,24 +12,24 @@ From the project folder:
 make install
 ```
 
-This copies `profile-menu.py` and `items.py` into `~/scripts`. To use a different folder, pass `DEST`, e.g. `make install DEST=$HOME/bin` (and change `~/scripts` in the snippets below to match). `items.py` must sit in the same folder as the script.
+This copies `climenu.py` and `clicommands.py` into `~/scripts`. To use a different folder, pass `DEST`, e.g. `make install DEST=$HOME/bin` (and change `~/scripts` in the snippets below to match). `clicommands.py` must sit in the same folder as the script.
 
-Run `make install` again after pulling changes: it updates `profile-menu.py` but keeps your edited `items.py`. `make uninstall` removes the script and leaves your `items.py` alone.
+Run `make install` again after pulling changes: it updates `climenu.py` but keeps your edited `clicommands.py`. `make uninstall` removes the script and leaves your `clicommands.py` alone.
 
 ## zsh
 
 Add to `~/.zshrc`:
 
 ```zsh
-profile-menu-widget() {
+climenu-widget() {
   zle -I                                        # hand the terminal over cleanly
-  python3 ~/scripts/profile-menu.py </dev/tty   # runs the chosen command itself
+  python3 ~/scripts/climenu.py </dev/tty   # runs the chosen command itself
   if (( $? == 130 )); then                      # closed without running anything:
     zle reset-prompt                            #   redraw the prompt where it was
   fi
 }
-zle -N profile-menu-widget
-bindkey '^G' profile-menu-widget
+zle -N climenu-widget
+bindkey '^G' climenu-widget
 ```
 
 Then reload: `source ~/.zshrc`
@@ -40,11 +40,11 @@ Add to `~/.profile` (where your aliases live) or `~/.bashrc`:
 
 ```bash
 if [[ $- == *i* ]]; then                        # interactive shells only
-  __profile_menu() {
-    python3 ~/scripts/profile-menu.py </dev/tty # runs the chosen command itself
+  __climenu() {
+    python3 ~/scripts/climenu.py </dev/tty # runs the chosen command itself
     (( $? == 130 )) || return 124               # a command ran: redraw the whole prompt below it
   }
-  bind -x '"\C-g": __profile_menu'
+  bind -x '"\C-g": __climenu'
 fi
 ```
 
