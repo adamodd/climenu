@@ -1,4 +1,4 @@
-# climenu: shell hotkey install
+# climenu
 
 Launch `climenu.py` from any shell prompt with **Ctrl-G**. The menu opens right below your prompt; selecting an item runs it immediately, same as running the script directly.
 
@@ -16,7 +16,9 @@ This copies `climenu.py` and `clicommands.py` into `~/scripts`. To use a differe
 
 Run `make install` again after pulling changes: it updates `climenu.py` but keeps your edited `clicommands.py`. `make uninstall` removes the script and leaves your `clicommands.py` alone.
 
-## zsh
+## Shell hotkey install
+
+### zsh
 
 Add to `~/.zshrc`:
 
@@ -34,7 +36,7 @@ bindkey '^G' climenu-widget
 
 Then reload: `source ~/.zshrc`
 
-## bash
+### bash
 
 Add to `~/.profile` (where your aliases live) or `~/.bashrc`:
 
