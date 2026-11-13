@@ -7,6 +7,7 @@ Each entry is a dict with these keys:
     "command"  (required) shell command to run
     "label"    (optional) text shown in the menu, right-aligned
     "hotkey"   (optional) single key that jumps to and runs the item
+                          (any key but q, which closes the menu)
     "cd"       (optional) directory to change to before running the command
                           (~ is expanded; applies to this item only)
 

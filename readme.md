@@ -1,6 +1,8 @@
 # profile-menu: shell hotkey install
 
-Launch `profile-menu.py` from any shell prompt with **Ctrl-G**. Selecting an item runs it immediately, same as running the script directly.
+Launch `profile-menu.py` from any shell prompt with **Ctrl-G**. The menu opens right below your prompt; selecting an item runs it immediately, same as running the script directly.
+
+**Using the menu:** Up/Down or the mouse wheel to move, Enter or a click to run, an item's hotkey to jump to it and run it, `q` or Esc to close without running anything.
 
 Replace `~/path/to/profile-menu.py` below with the script's real location. `items.py` must sit in the same directory as the script.
 
@@ -12,7 +14,9 @@ Add to `~/.zshrc`:
 profile-menu-widget() {
   zle -I                                        # hand the terminal over cleanly
   python3 ~/path/to/profile-menu.py </dev/tty   # runs the chosen command itself
-  zle reset-prompt                              # redraw prompt when it returns
+  if (( $? == 130 )); then                      # closed without running anything:
+    zle reset-prompt                            #   redraw the prompt where it was
+  fi
 }
 zle -N profile-menu-widget
 bindkey '^G' profile-menu-widget
@@ -26,7 +30,10 @@ Add to `~/.profile` (where your aliases live) or `~/.bashrc`:
 
 ```bash
 if [[ $- == *i* ]]; then                        # interactive shells only
-  __profile_menu() { python3 ~/path/to/profile-menu.py </dev/tty; }
+  __profile_menu() {
+    python3 ~/path/to/profile-menu.py </dev/tty # runs the chosen command itself
+    (( $? == 130 )) || return 124               # a command ran: redraw the whole prompt below it
+  }
   bind -x '"\C-g": __profile_menu'
 fi
 ```
@@ -40,5 +47,7 @@ If bash is a login shell and you have a `~/.bash_profile`, bash reads that inste
 - **Changing the key:** edit `^G` (zsh) and `\C-g` (bash). Avoid Ctrl-C, Ctrl-D, Ctrl-Z, Ctrl-S and Ctrl-Q, which the terminal uses for signals and flow control.
 - **Interactive guard (bash):** required. The menu runs commands in non-interactive `bash -l -c ...` shells that also read `~/.profile`, and `bind -x` errors there. The guard also prevents the menu from launching itself recursively.
 - **Typed text:** anything already typed at the prompt is preserved while the menu runs.
-- **Screen:** the script clears the screen before running a command, so the prompt redraws at the top afterward.
-- **Status:** the bash binding was tested in a pseudo-terminal. The zsh widget and both snippets in iTerm2 have not been tested; try Ctrl-G once in each shell.
+- **Exit status 130:** the script exits with 130 when you close the menu without running anything, and 0 when it ran a command. The snippets use this to redraw the prompt in the right place. In zsh, `zle reset-prompt` after a command would draw the new prompt over the last line of its output, so it's only used when nothing ran. In bash, `return 124` makes bash redraw the whole prompt after a command, not just its last line (matters for two-line prompts).
+- **Scrollback:** the menu draws below the prompt and never clears the screen, so it leaves nothing in your scrollback, and it erases itself when it closes. A command's output stays on screen like any other command's. If you shrink the window shorter than the menu while it's open, the terminal itself pushes the lines above into scrollback, as it would for any program.
+- **Mouse:** clicks and the wheel need mouse reporting turned on: in iTerm2, Settings → Profiles → Terminal → "Enable mouse reporting" (on by default); in Terminal.app, View → Allow Mouse Reporting (⌘R). While the menu is open it receives your clicks, so close it before selecting text with the mouse (or hold Option in iTerm2).
+- **Status:** tested in pseudo-terminals on Linux with zsh 5.9 and bash 5.2: closing, running, typed input to a command, Ctrl-C, mouse, resizing, long lists, one- and two-line prompts. Not yet tested inside iTerm2 or Terminal.app themselves, or with macOS's built-in bash 3.2 (Homebrew's bash is 5.x).
