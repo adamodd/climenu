@@ -1,157 +1,142 @@
 # climenu
 
-Two small command-line tools for macOS and Linux:
+Two small shell tools for macOS and Linux.
 
-- **climenu**: a menu of your own command shortcuts that pops up under your shell prompt when you press Ctrl-G.
-- **para**: runs several commands side by side, such as dev servers, and stops them all with one Ctrl-C.
+- ⌨️ **climenu**: your command shortcuts in a menu under the prompt. Press Ctrl-G.
+- ⚡ **para**: run several commands at once. One Ctrl-C stops them all.
 
 ![climenu demo: Ctrl-G opens the menu under the prompt, q closes it without a trace, a hotkey runs git status, and a menu item starts two dev servers with para, which Ctrl-C stops](demo/climenu-demo.svg)
 
 ## Requirements
 
-- **macOS or Linux.**
-- **Python 3** for climenu. It uses only the standard library.
-- **zsh or bash** for climenu's Ctrl-G hotkey. Commands from the menu run in your own shell (`$SHELL`): bash, zsh and fish are supported. There's no hotkey snippet for fish yet.
-- **GNU parallel** for para: `brew install parallel` on macOS, `apt install parallel` on Debian/Ubuntu. Not to be confused with the different `parallel` in the `moreutils` package; para checks for this and tells you.
+- macOS or Linux
+- Python 3 (standard library only) for climenu
+- zsh or bash for the Ctrl-G hotkey. Menu commands run in `$SHELL`: bash, zsh or fish.
+- [GNU parallel](https://www.gnu.org/software/parallel/) for para: `brew install parallel` / `apt install parallel`. Not the `parallel` from moreutils; para checks.
 
 ## Install
 
-From the project folder:
-
 ```bash
-make install
+make install                  # into ~/scripts
+make install DEST=$HOME/bin   # or elsewhere
+make uninstall
 ```
 
-This copies `climenu.py`, `clicommands.py` and `para` into `~/scripts`. To use another folder, pass `DEST`, e.g. `make install DEST=$HOME/bin`, and change `~/scripts` in the snippets below to match.
-
-Run `make install` again after pulling changes. It updates the scripts but never overwrites your edited `clicommands.py`. `make uninstall` removes the scripts and leaves `clicommands.py` alone.
+Installs `climenu.py`, `clicommands.py` and `para`. Reinstalling updates the scripts and never touches your `clicommands.py`.
 
 ## climenu
 
-### Usage
-
-Press **Ctrl-G** at a shell prompt (after setting up the hotkey below), or run `python3 ~/scripts/climenu.py`. The menu opens right below your prompt.
+### Keys
 
 | Key | Action |
 |---|---|
-| Up / Down, mouse wheel | move the highlight |
-| Enter, click | run the highlighted (clicked) command |
-| an item's hotkey | jump to that command and run it |
-| `q`, Esc | close without running anything |
+| ↑ ↓, wheel | move |
+| Enter, click | run |
+| hotkey | run that item |
+| `q`, Esc | close |
 
-The chosen command runs in your normal terminal, so interactive programs like `htop`, `ssh` and `vim` work as usual.
+Commands run in your normal terminal, so `htop`, `ssh` and `vim` work. You can also run the menu directly: `python3 ~/scripts/climenu.py`.
 
-### Adding commands
+### Commands
 
-Edit `~/scripts/clicommands.py`. Each entry in `COMMANDS` is one menu row:
+Edit `~/scripts/clicommands.py`. One entry per row:
 
 ```python
 {"command": "git status", "label": "Git status", "hotkey": "g", "cd": "~/code/myrepo"},
 ```
 
-Only `command` is required. `label` is shown on the right, `hotkey` is a single key (any key but `q`), and `cd` is a folder to run the command in. The file's header explains each field.
+Only `command` is required. `hotkey` is one key (not `q`). `cd` sets the folder.
 
-### Ctrl-G hotkey
+### Hotkey setup
 
-**zsh:** add to `~/.zshrc`, then run `source ~/.zshrc`:
+**zsh** (`~/.zshrc`):
 
 ```zsh
 climenu-widget() {
-  zle -I                                        # hand the terminal over cleanly
-  python3 ~/scripts/climenu.py </dev/tty        # runs the chosen command itself
-  if (( $? == 130 )); then                      # closed without running anything:
-    zle reset-prompt                            #   redraw the prompt where it was
+  zle -I                                   # hand over the terminal
+  python3 ~/scripts/climenu.py </dev/tty   # runs the chosen command
+  if (( $? == 130 )); then                 # closed without running:
+    zle reset-prompt                       #   redraw prompt in place
   fi
 }
 zle -N climenu-widget
 bindkey '^G' climenu-widget
 ```
 
-**bash:** add to `~/.profile` (where your aliases live) or `~/.bashrc`, then `source` it:
+**bash** (`~/.profile` or `~/.bashrc`; use `~/.bash_profile` if that's what your login shell reads):
 
 ```bash
-if [[ $- == *i* ]]; then                        # interactive shells only
+if [[ $- == *i* ]]; then                   # interactive shells only (required)
   __climenu() {
-    python3 ~/scripts/climenu.py </dev/tty      # runs the chosen command itself
-    (( $? == 130 )) || return 124               # a command ran: redraw the whole prompt below it
+    python3 ~/scripts/climenu.py </dev/tty # runs the chosen command
+    (( $? == 130 )) || return 124          # ran something: redraw full prompt
   }
   bind -x '"\C-g": __climenu'
 fi
 ```
 
-If bash is a login shell and you have a `~/.bash_profile`, bash reads that instead of `~/.profile`. Put the snippet there, or have `~/.bash_profile` source `~/.profile`.
+Then `source` the file. To change the key, edit `^G` / `\C-g`. Avoid Ctrl-C, D, Z, S and Q.
 
-To use a different key, change `^G` (zsh) or `\C-g` (bash). Avoid Ctrl-C, Ctrl-D, Ctrl-Z, Ctrl-S and Ctrl-Q, which the terminal uses for signals and flow control.
+### Mouse 🖱️
 
-### Mouse
+Needs mouse reporting on:
 
-Clicks and the wheel need mouse reporting turned on in your terminal:
+- **iTerm2:** Settings → Profiles → Terminal → Enable mouse reporting (default on)
+- **Terminal.app:** View → Allow Mouse Reporting (⌘R)
 
-- **iTerm2:** Settings → Profiles → Terminal → "Enable mouse reporting" (on by default).
-- **Terminal.app:** View → Allow Mouse Reporting (⌘R).
-
-While the menu is open it receives your clicks, so close it before selecting text with the mouse (or hold Option in iTerm2).
+While the menu is open it captures clicks. Hold Option in iTerm2 to select text.
 
 ### How it works
 
-- **Drawn inline, no screen clearing.** The menu is drawn with plain terminal escape codes below the prompt, redrawn in place, and erased when it closes. It never clears the screen, because iTerm2 and Terminal.app copy a cleared screen into scrollback. So it leaves nothing in your scrollback. (If you shrink the window shorter than the menu while it's open, the terminal itself pushes lines above it into scrollback, as it would for any program.)
-- **Commands run in your login shell** (`$SHELL -l -c ...`), so your aliases and environment are available. See `_shell_invocation()` in `climenu.py` for the details per shell.
-- **Normal terminal mode for commands.** Before running a command, climenu switches the terminal back to normal line-by-line typing, so commands that ask questions work. Ctrl-C stops the command without a Python error.
-- **Exit status.** climenu exits with 0 when it ran a command and 130 when you closed it without running anything. The hotkey snippets use this to redraw the prompt in the right place. In zsh, `zle reset-prompt` after a command would draw the new prompt over the last line of its output, so it's only used when nothing ran. In bash, `return 124` makes bash redraw the whole prompt after a command, not just its last line, which matters for two-line prompts.
-- **Typed text is kept.** Anything already typed at the prompt is still there when the menu closes.
-- **The bash interactive guard is required.** Commands run in non-interactive `bash -l -c ...` shells that also read `~/.profile`, and `bind -x` errors there. The guard also stops the menu from launching itself recursively.
+- **No screen clearing.** The menu is drawn inline with escape codes and erased on close. iTerm2 and Terminal.app copy cleared screens into scrollback, so climenu never clears. Nothing ends up in your scrollback.
+- **Your shell, your aliases.** Commands run via `$SHELL -l -c`. See `_shell_invocation()`.
+- **Normal input.** The terminal is put back in line mode before a command runs, so prompts like `[Y/n]` work. Ctrl-C stops the command, not climenu.
+- **Exit status.** 0 = ran a command, 130 = closed. The snippets use it to redraw the prompt correctly: zsh's `reset-prompt` would overwrite output, and bash's `return 124` redraws multi-line prompts.
+- **Typed text is kept** at the prompt.
+- **The bash `$-` guard** stops `bind -x` erroring in the non-interactive shells commands run in, and stops the menu launching itself.
 
 ## para
 
-### Usage
-
 ```bash
 para 'npm run dev' 'python3 -m http.server' 'cd api && make watch'
-para -t 'npm run dev' 'python3 -m http.server'
+para -t 'npm run dev' 'python3 -m http.server'   # label output lines
 ```
 
-Each argument is one command; quote it if it has spaces or `&&`. All of them start at once, and their output is printed as it arrives. Press **Ctrl-C** to stop them all.
-
-| Option | Meaning |
-|---|---|
-| `-t` | label each output line with the command it came from |
-| `-h` | show usage |
-
-It also works as a `command` in `clicommands.py`, so you can start a whole set of dev servers from the menu.
+One quoted command per argument. Ctrl-C stops everything. `-h` shows usage. Works as a climenu entry too.
 
 ### How it works
 
-para is a short wrapper around GNU parallel, which does the real work. The command it runs is:
+A thin wrapper around GNU parallel:
 
 ```bash
 parallel --will-cite --termseq TERM,5000,KILL,25 --line-buffer [--tag] -j0 ::: 'cmd 1' 'cmd 2' ...
 ```
 
-| Flag | What it does |
+| Flag | Why |
 |---|---|
-| `-j0` | run every command at once (by default parallel runs only as many as you have CPU cores) |
-| `--line-buffer` | print output as it arrives, a whole line at a time, so lines from different commands don't get mixed together |
-| `--tag` | added by `-t`: start each line with the command that printed it |
-| `--termseq TERM,5000,KILL,25` | on Ctrl-C, ask each command to stop, wait up to 5 seconds for it to shut down cleanly, then force it. Parallel's default force-kills after about 0.4 seconds, too soon for a server to finish shutting down |
-| `--will-cite` | skip parallel's "please cite GNU parallel" notice |
+| `-j0` | run all at once (default is one per CPU core) |
+| `--line-buffer` | stream output, whole lines only |
+| `--tag` | from `-t`: prefix lines with their command |
+| `--termseq TERM,5000,KILL,25` | on Ctrl-C: TERM, up to 5 s for a clean exit, then KILL. The default kills after ~0.4 s. |
+| `--will-cite` | no citation notice |
 
-Why this is better than `trap 'kill $(jobs -p)' EXIT; foo & bar & wait`:
+Compared with `trap 'kill $(jobs -p)' EXIT; foo & bar & wait`:
 
-- **Everything is stopped, including what the commands started.** With `cd app && npm run dev`, the `node` process behind npm is stopped too.
-- **para doesn't return until everything has exited.** Nothing is left shutting down in the background after your prompt comes back.
-- **The commands get no keyboard input.** Dev servers that watch for keypresses switch the terminal into a special mode and switch it back when they exit. Without keyboard input they leave the terminal alone. That's what garbled fzf's Ctrl-R (`^R ^[^[^C`) after the old one-liner.
+- ✅ Stops child processes too (the `node` behind `npm run dev`).
+- ✅ Waits until everything has exited. No stragglers.
+- ✅ Commands get no stdin, so keypress-watching dev servers can't leave your terminal in raw mode. That was the cause of the garbled fzf Ctrl-R (`^R ^[^[^C`).
 
-para exits with parallel's status: 0 if every command succeeded, otherwise the number of commands that failed (up to 100), and 255 if you stopped it with Ctrl-C.
+Exit status: 0 if all succeeded, else the number that failed (max 100). 255 after Ctrl-C.
 
 ## Testing status
 
 Tested on Linux in pseudo-terminals:
 
-- **climenu**, with zsh 5.9 and bash 5.2: closing, running, typed input to a command, Ctrl-C, mouse, resizing, long lists, and one- and two-line prompts.
-- **para**, run by dash and by bash in POSIX mode, with GNU parallel 20231122: Ctrl-C with slow-stopping and stop-ignoring commands, `-t`, and the missing-parallel checks.
+- **climenu:** zsh 5.9, bash 5.2. Close, run, command input, Ctrl-C, mouse, resize, long lists, one- and two-line prompts.
+- **para:** dash and bash `--posix`, GNU parallel 20231122. Ctrl-C with slow and TERM-ignoring commands, `-t`, missing parallel.
 
-Not yet tested inside iTerm2 or Terminal.app themselves, or with macOS's built-in bash 3.2 (Homebrew's bash is 5.x).
+Not yet tested in iTerm2 or Terminal.app directly, or with macOS's bash 3.2.
 
 ## Contributing
 
-Design decisions, constraints and how changes have been tested are in [AGENTS.md](AGENTS.md). AI coding tools read that file automatically; `CLAUDE.md` points Claude Code to it.
+Design notes and constraints: [AGENTS.md](AGENTS.md). `CLAUDE.md` points Claude Code there.
