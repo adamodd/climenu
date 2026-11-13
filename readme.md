@@ -12,7 +12,7 @@ From the project folder:
 make install
 ```
 
-This copies `climenu.py` and `clicommands.py` into `~/scripts`. To use a different folder, pass `DEST`, e.g. `make install DEST=$HOME/bin` (and change `~/scripts` in the snippets below to match). `clicommands.py` must sit in the same folder as the script.
+This copies `climenu.py`, `clicommands.py` and `xcmd` into `~/scripts`. To use a different folder, pass `DEST`, e.g. `make install DEST=$HOME/bin` (and change `~/scripts` in the snippets below to match). `clicommands.py` must sit in the same folder as the script.
 
 Run `make install` again after pulling changes: it updates `climenu.py` but keeps your edited `clicommands.py`. `make uninstall` removes the script and leaves your `clicommands.py` alone.
 
@@ -63,3 +63,11 @@ If bash is a login shell and you have a `~/.bash_profile`, bash reads that inste
 - **Scrollback:** the menu draws below the prompt and never clears the screen, so it leaves nothing in your scrollback, and it erases itself when it closes. A command's output stays on screen like any other command's. If you shrink the window shorter than the menu while it's open, the terminal itself pushes the lines above into scrollback, as it would for any program.
 - **Mouse:** clicks and the wheel need mouse reporting turned on: in iTerm2, Settings → Profiles → Terminal → "Enable mouse reporting" (on by default); in Terminal.app, View → Allow Mouse Reporting (⌘R). While the menu is open it receives your clicks, so close it before selecting text with the mouse (or hold Option in iTerm2).
 - **Status:** tested in pseudo-terminals on Linux with zsh 5.9 and bash 5.2: closing, running, typed input to a command, Ctrl-C, mouse, resizing, long lists, one- and two-line prompts. Not yet tested inside iTerm2 or Terminal.app themselves, or with macOS's built-in bash 3.2 (Homebrew's bash is 5.x).
+
+## xcmd: run several daemons, stop them all with Ctrl-C
+
+```bash
+xcmd 'npm run dev' 'python3 -m http.server' 'cd api && make watch'
+```
+
+Each argument is one command; quote it if it has spaces or `&&`. Ctrl-C stops all of them, including anything they started, and `xcmd` doesn't return until they've actually exited (anything still running after 5 seconds is force-killed). Then it puts the terminal back exactly as it was. The commands get no keyboard input, which stops dev servers that watch for keypresses from leaving your terminal in a broken mode. It's a plain POSIX `sh` script, so it works the same on macOS and Linux. It also works as a `clicommands.py` entry.

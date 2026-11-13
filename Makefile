@@ -1,4 +1,4 @@
-# Install climenu into the folder where you keep your own scripts.
+# Install climenu (and xcmd) into the folder where you keep your own scripts.
 #
 #   make install                    copy into ~/scripts
 #   make install DEST=$HOME/bin     copy somewhere else
@@ -15,6 +15,7 @@ DEST ?= $(HOME)/scripts
 install:
 	install -d "$(DEST)"
 	install -m 755 climenu.py "$(DEST)/climenu.py"
+	install -m 755 xcmd "$(DEST)/xcmd"
 	@if [ -e "$(DEST)/clicommands.py" ]; then \
 		echo "kept your existing $(DEST)/clicommands.py"; \
 	else \
@@ -22,5 +23,5 @@ install:
 	fi
 
 uninstall:
-	rm -f "$(DEST)/climenu.py"
+	rm -f "$(DEST)/climenu.py" "$(DEST)/xcmd"
 	@echo "left $(DEST)/clicommands.py in place (your shortcuts); delete it yourself if you don't want it"

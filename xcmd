@@ -1,0 +1,64 @@
+#!/bin/sh
+# xcmd — run several commands at once; Ctrl-C stops them all.
+#
+#   xcmd 'npm run dev' 'python3 -m http.server' 'tail -f app.log'
+#
+# Each argument is one command; quote it if it has spaces or && in it.
+# xcmd returns when you press Ctrl-C or when every command has finished,
+# and not before all of them (and anything they started) have stopped.
+#
+# The commands get no keyboard input (stdin is /dev/null). Daemons don't
+# need it, and it stops them fighting over the terminal or leaving it in
+# a strange mode after they exit.
+
+if [ $# -eq 0 ]; then
+  echo "usage: xcmd 'command 1' 'command 2' ..." >&2
+  exit 2
+fi
+
+tty_mode=$(stty -g 2>/dev/null)  # terminal settings, to put back at the end
+
+# Job control: each command runs in its own process group, so stopping a
+# group also stops whatever that command started (npm -> node, etc.).
+# Without a terminal (from cron, say) job control isn't available: then
+# only each command's top-level process is stopped, and anything it
+# started (the node behind `cd app && npm run dev`) may keep running.
+set -m 2>/dev/null
+
+pids=
+for cmd in "$@"; do
+  sh -c "$cmd" </dev/null &
+  pids="$pids $!"
+done
+
+any_running() {
+  for pid in $pids; do
+    kill -0 -"$pid" 2>/dev/null || kill -0 "$pid" 2>/dev/null && return 0
+  done
+  return 1
+}
+
+stop_all() {
+  trap '' INT TERM HUP  # extra Ctrl-C presses while stopping: ignore
+  exec 2>/dev/null      # hide the shell's own "Terminated" notices
+  for pid in $pids; do
+    kill -TERM -"$pid" || kill -TERM "$pid"  # ask every group to stop
+  done
+  tries=0
+  while any_running && [ $tries -lt 50 ]; do  # give them up to 5 seconds
+    sleep 0.1
+    tries=$((tries + 1))
+  done
+  for pid in $pids; do
+    kill -KILL -"$pid" || kill -KILL "$pid"  # then force anything still there
+  done
+  wait
+  if [ -n "$tty_mode" ]; then stty "$tty_mode"; fi
+}
+
+trap 'echo; stop_all; exit 130' INT
+trap 'stop_all; exit 143' TERM HUP
+
+wait      # until every command finishes on its own (or Ctrl-C)
+stop_all  # clean up anything they left running in the background
+exit 0
