@@ -4,7 +4,17 @@ Launch `profile-menu.py` from any shell prompt with **Ctrl-G**. The menu opens r
 
 **Using the menu:** Up/Down or the mouse wheel to move, Enter or a click to run, an item's hotkey to jump to it and run it, `q` or Esc to close without running anything.
 
-Replace `~/path/to/profile-menu.py` below with the script's real location. `items.py` must sit in the same directory as the script.
+## Install
+
+From the project folder:
+
+```bash
+make install
+```
+
+This copies `profile-menu.py` and `items.py` into `~/scripts`. To use a different folder, pass `DEST`, e.g. `make install DEST=$HOME/bin` (and change `~/scripts` in the snippets below to match). `items.py` must sit in the same folder as the script.
+
+Run `make install` again after pulling changes: it updates `profile-menu.py` but keeps your edited `items.py`. `make uninstall` removes the script and leaves your `items.py` alone.
 
 ## zsh
 
@@ -13,7 +23,7 @@ Add to `~/.zshrc`:
 ```zsh
 profile-menu-widget() {
   zle -I                                        # hand the terminal over cleanly
-  python3 ~/path/to/profile-menu.py </dev/tty   # runs the chosen command itself
+  python3 ~/scripts/profile-menu.py </dev/tty   # runs the chosen command itself
   if (( $? == 130 )); then                      # closed without running anything:
     zle reset-prompt                            #   redraw the prompt where it was
   fi
@@ -31,7 +41,7 @@ Add to `~/.profile` (where your aliases live) or `~/.bashrc`:
 ```bash
 if [[ $- == *i* ]]; then                        # interactive shells only
   __profile_menu() {
-    python3 ~/path/to/profile-menu.py </dev/tty # runs the chosen command itself
+    python3 ~/scripts/profile-menu.py </dev/tty # runs the chosen command itself
     (( $? == 130 )) || return 124               # a command ran: redraw the whole prompt below it
   }
   bind -x '"\C-g": __profile_menu'
