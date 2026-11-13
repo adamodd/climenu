@@ -3,14 +3,14 @@
 Two small command-line tools for macOS and Linux:
 
 - **climenu**: a menu of your own command shortcuts that pops up under your shell prompt when you press Ctrl-G.
-- **xcmd**: runs several commands side by side, such as dev servers, and stops them all with one Ctrl-C.
+- **para**: runs several commands side by side, such as dev servers, and stops them all with one Ctrl-C.
 
 ## Requirements
 
 - **macOS or Linux.**
 - **Python 3** for climenu. It uses only the standard library.
 - **zsh or bash** for climenu's Ctrl-G hotkey. Commands from the menu run in your own shell (`$SHELL`): bash, zsh and fish are supported. There's no hotkey snippet for fish yet.
-- **GNU parallel** for xcmd: `brew install parallel` on macOS, `apt install parallel` on Debian/Ubuntu. Not to be confused with the different `parallel` in the `moreutils` package; xcmd checks for this and tells you.
+- **GNU parallel** for para: `brew install parallel` on macOS, `apt install parallel` on Debian/Ubuntu. Not to be confused with the different `parallel` in the `moreutils` package; para checks for this and tells you.
 
 ## Install
 
@@ -20,7 +20,7 @@ From the project folder:
 make install
 ```
 
-This copies `climenu.py`, `clicommands.py` and `xcmd` into `~/scripts`. To use another folder, pass `DEST`, e.g. `make install DEST=$HOME/bin`, and change `~/scripts` in the snippets below to match.
+This copies `climenu.py`, `clicommands.py` and `para` into `~/scripts`. To use another folder, pass `DEST`, e.g. `make install DEST=$HOME/bin`, and change `~/scripts` in the snippets below to match.
 
 Run `make install` again after pulling changes. It updates the scripts but never overwrites your edited `clicommands.py`. `make uninstall` removes the scripts and leaves `clicommands.py` alone.
 
@@ -99,13 +99,13 @@ While the menu is open it receives your clicks, so close it before selecting tex
 - **Typed text is kept.** Anything already typed at the prompt is still there when the menu closes.
 - **The bash interactive guard is required.** Commands run in non-interactive `bash -l -c ...` shells that also read `~/.profile`, and `bind -x` errors there. The guard also stops the menu from launching itself recursively.
 
-## xcmd
+## para
 
 ### Usage
 
 ```bash
-xcmd 'npm run dev' 'python3 -m http.server' 'cd api && make watch'
-xcmd -t 'npm run dev' 'python3 -m http.server'
+para 'npm run dev' 'python3 -m http.server' 'cd api && make watch'
+para -t 'npm run dev' 'python3 -m http.server'
 ```
 
 Each argument is one command; quote it if it has spaces or `&&`. All of them start at once, and their output is printed as it arrives. Press **Ctrl-C** to stop them all.
@@ -119,7 +119,7 @@ It also works as a `command` in `clicommands.py`, so you can start a whole set o
 
 ### How it works
 
-xcmd is a short wrapper around GNU parallel, which does the real work. The command it runs is:
+para is a short wrapper around GNU parallel, which does the real work. The command it runs is:
 
 ```bash
 parallel --will-cite --termseq TERM,5000,KILL,25 --line-buffer [--tag] -j0 ::: 'cmd 1' 'cmd 2' ...
@@ -136,16 +136,20 @@ parallel --will-cite --termseq TERM,5000,KILL,25 --line-buffer [--tag] -j0 ::: '
 Why this is better than `trap 'kill $(jobs -p)' EXIT; foo & bar & wait`:
 
 - **Everything is stopped, including what the commands started.** With `cd app && npm run dev`, the `node` process behind npm is stopped too.
-- **xcmd doesn't return until everything has exited.** Nothing is left shutting down in the background after your prompt comes back.
+- **para doesn't return until everything has exited.** Nothing is left shutting down in the background after your prompt comes back.
 - **The commands get no keyboard input.** Dev servers that watch for keypresses switch the terminal into a special mode and switch it back when they exit. Without keyboard input they leave the terminal alone. That's what garbled fzf's Ctrl-R (`^R ^[^[^C`) after the old one-liner.
 
-xcmd exits with parallel's status: 0 if every command succeeded, otherwise the number of commands that failed (up to 100), and 255 if you stopped it with Ctrl-C.
+para exits with parallel's status: 0 if every command succeeded, otherwise the number of commands that failed (up to 100), and 255 if you stopped it with Ctrl-C.
 
 ## Testing status
 
 Tested on Linux in pseudo-terminals:
 
 - **climenu**, with zsh 5.9 and bash 5.2: closing, running, typed input to a command, Ctrl-C, mouse, resizing, long lists, and one- and two-line prompts.
-- **xcmd**, run by dash and by bash in POSIX mode, with GNU parallel 20231122: Ctrl-C with slow-stopping and stop-ignoring commands, `-t`, and the missing-parallel checks.
+- **para**, run by dash and by bash in POSIX mode, with GNU parallel 20231122: Ctrl-C with slow-stopping and stop-ignoring commands, `-t`, and the missing-parallel checks.
 
 Not yet tested inside iTerm2 or Terminal.app themselves, or with macOS's built-in bash 3.2 (Homebrew's bash is 5.x).
+
+## Contributing
+
+Design decisions, constraints and how changes have been tested are in [AGENTS.md](AGENTS.md). AI coding tools read that file automatically; `CLAUDE.md` points Claude Code to it.

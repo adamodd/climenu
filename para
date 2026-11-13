@@ -1,8 +1,8 @@
 #!/bin/sh
-# xcmd — run several commands at once; Ctrl-C stops them all.
+# para — run several commands at once; Ctrl-C stops them all.
 #
-#   xcmd 'npm run dev' 'python3 -m http.server' 'tail -f app.log'
-#   xcmd -t ...    label each output line with the command it came from
+#   para 'npm run dev' 'python3 -m http.server' 'tail -f app.log'
+#   para -t ...    label each output line with the command it came from
 #
 # Each argument is one command; quote it if it has spaces or && in it.
 #
@@ -12,7 +12,7 @@
 # everything it started, then waits until they've all exited.
 
 usage() {
-  echo "usage: xcmd [-t] 'command 1' 'command 2' ..."
+  echo "usage: para [-t] 'command 1' 'command 2' ..."
   echo "  -t   label each output line with the command it came from"
 }
 
@@ -33,7 +33,7 @@ fi
 
 # The moreutils package has a different program also called "parallel".
 if ! parallel --version 2>/dev/null | grep -q '^GNU parallel'; then
-  echo "xcmd: needs GNU parallel (macOS: brew install parallel," >&2
+  echo "para: needs GNU parallel (macOS: brew install parallel," >&2
   echo "      Debian/Ubuntu: apt install parallel)" >&2
   exit 127
 fi
