@@ -24,6 +24,40 @@ make uninstall
 
 Installs `climenu.py`, `clicommands.py` and `para`. Reinstalling updates the scripts and never touches your `clicommands.py`.
 
+To run `para` by name, put the folder on your `PATH` (see [Aliases](#aliases)).
+
+## Aliases
+
+> [!IMPORTANT]
+> Menu commands and `para` don't run in an interactive shell, so most aliases and shell functions aren't there.
+
+| Defined in | climenu | para |
+|---|---|---|
+| `~/.zshrc`, `~/.bashrc` | ❌ | ❌ |
+| `~/.zprofile`, `~/.profile` | ✅ | ❌ |
+| a script on `PATH` | ✅ | ✅ |
+
+Fix: turn each alias into a small executable script in `~/scripts`.
+
+```sh
+#!/bin/sh
+exec git log --oneline --graph "$@"
+```
+
+```bash
+chmod +x ~/scripts/glog
+```
+
+Then put the folder on `PATH`, in `~/.zshenv` (zsh) or `~/.profile` (bash):
+
+```sh
+export PATH="$PATH:$HOME/scripts"
+```
+
+- Use `$HOME`, not `~`. Only bash understands `~` inside `PATH`.
+- Appending (`$PATH:…`) means a script can't shadow a system command by accident.
+- Aliases that change the current shell (`cd`, `export`) can't be scripts. In climenu, use an entry's `cd` field instead.
+
 ## climenu
 
 ### Keys
@@ -89,7 +123,7 @@ While the menu is open it captures clicks. Hold Option in iTerm2 to select text.
 ### How it works
 
 - **No screen clearing.** The menu is drawn inline with escape codes and erased on close. iTerm2 and Terminal.app copy cleared screens into scrollback, so climenu never clears. Nothing ends up in your scrollback.
-- **Your shell, your aliases.** Commands run via `$SHELL -l -c`. See `_shell_invocation()`.
+- **Your login shell.** Commands run via `$SHELL -l -c`, which reads `~/.zprofile` / `~/.profile` but not `~/.zshrc` / `~/.bashrc`. See [Aliases](#aliases) and `_shell_invocation()`.
 - **Normal input.** The terminal is put back in line mode before a command runs, so prompts like `[Y/n]` work. Ctrl-C stops the command, not climenu.
 - **Exit status.** 0 = ran a command, 130 = closed. The snippets use it to redraw the prompt correctly: zsh's `reset-prompt` would overwrite output, and bash's `return 124` redraws multi-line prompts.
 - **Typed text is kept** at the prompt.
@@ -102,7 +136,7 @@ para 'npm run dev' 'python3 -m http.server' 'cd api && make watch'
 para -t 'npm run dev' 'python3 -m http.server'   # label output lines
 ```
 
-One quoted command per argument. Ctrl-C stops everything. `-h` shows usage. Works as a climenu entry too.
+One quoted command per argument. Ctrl-C stops everything. `-h` shows usage. Works as a climenu entry too. No aliases here: use scripts (see [Aliases](#aliases)).
 
 ### How it works
 

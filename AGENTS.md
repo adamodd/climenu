@@ -29,6 +29,7 @@ These come from real bugs. Breaking one brings the bug back.
 - **The anchor.** The cursor rests on the "anchor" (where the shell left it) between redraws, so the terminal's line rewrapping on resize keeps it in place. If the cursor starts at column 1 the menu starts on that line (`lead=0`), otherwise on the line below (`lead=1`). See `Layout` and `Menu._make_room`.
 - **Never write in the last column** of a row (pending-wrap breaks reflow on resize).
 - **Mouse: act on release, not press**, or the release report is left in the input for the shell to read as typed text.
+- **Commands run via `$SHELL -l -c`**: login files (`~/.zprofile`, `~/.profile`) are read, `~/.zshrc` / `~/.bashrc` aren't. Don't claim otherwise in the docs.
 - **Exit status is a contract with the shell snippets:** 130 means "closed, nothing printed", so the snippets redraw the prompt in place; 0 means a command ran. If you change this, change both snippets in `readme.md`.
 - **Commands run in normal line mode** (`Terminal.set_line_mode`): under bash's `bind -x` the terminal is otherwise still in the line editor's no-echo mode. Python ignores Ctrl-C while a command runs, using a handler rather than `SIG_IGN`, which the command would inherit.
 - **Arrow keys come in two forms**, `ESC [ A` and `ESC O A` (the latter when the shell has turned on keypad mode, as oh-my-zsh does).
@@ -37,6 +38,7 @@ These come from real bugs. Breaking one brings the bug back.
 
 - Keep it a wrapper: option parsing, the GNU-parallel check, one `exec parallel ...`.
 - `--termseq TERM,5000,KILL,25` is deliberate. Parallel's default force-kills after about 0.4 s, which cuts off a server's clean shutdown.
+- Jobs run in parallel's own non-interactive shell: no aliases or functions, not even from login files. The readme's Aliases section tells users to use scripts on `PATH`; keep it accurate.
 - Jobs get stdin from `/dev/null` (parallel's default). That's what stops keypress-watching dev servers from leaving the terminal in a broken mode. Don't add `--tty`.
 
 ## Testing
